@@ -1,0 +1,282 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .phase-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 6px; }
+  .phase-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .phase-date { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+  .item { font-size: 12px; color: var(--color-text-secondary); padding: 3px 0 3px 12px; border-left: 2px solid var(--color-border-tertiary); margin: 3px 0; line-height: 1.4; transition: color 0.2s; cursor: default; position: relative; }
+  .item.done { text-decoration: line-through; color: var(--color-text-tertiary); border-left-color: var(--color-border-tertiary); }
+  .item.errata { border-left-color: #E24B4A; color: var(--color-text-primary); }
+  .item sub { font-size: 10px; color: var(--color-text-tertiary); margin-left: 4px; }
+  .section-head { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .badge-mvp { background: var(--color-background-info); color: var(--color-text-info); }
+  .badge-alpha { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .badge-beta { background: var(--color-background-success); color: var(--color-text-success); }
+  .badge-ga { background: #EEEDFE; color: #3C3489; }
+  .badge-errata { background: #FCEBEB; color: #A32D2D; }
+  .timeline-bar { display: flex; align-items: center; gap: 0; margin: 18px 0 22px; position: relative; }
+  .phase-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; flex-shrink: 0; position: relative; z-index: 2; }
+  .phase-connector { flex: 1; height: 2px; }
+  .phase-connector.solid { background: var(--color-border-secondary); }
+  .phase-connector.dashed { background: repeating-linear-gradient(to right, var(--color-border-secondary) 0, var(--color-border-secondary) 4px, transparent 4px, transparent 8px); }
+  .dot-today { background: var(--color-text-primary); border-color: var(--color-text-primary); }
+  .dot-mvp { background: var(--color-text-info); border-color: var(--color-text-info); }
+  .dot-alpha { background: var(--color-text-warning); border-color: var(--color-text-warning); }
+  .dot-beta { background: var(--color-text-success); border-color: var(--color-text-success); }
+  .dot-ga { background: #534AB7; border-color: #534AB7; }
+  .phase-col { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 14px 14px; position: relative; }
+  .phase-col.active { border-color: var(--color-border-info); }
+  .phase-col.errata-col { border-color: #E24B4A44; background: var(--color-background-primary); }
+  .phases-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  .errata-section { margin-top: 18px; }
+  .errata-input-row { display: flex; gap: 8px; margin-top: 10px; }
+  .errata-input-row input { flex: 1; font-size: 13px; padding: 7px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-primary); outline: none; }
+  .errata-input-row input:focus { border-color: var(--color-border-primary); }
+  .errata-input-row select { font-size: 12px; padding: 7px 8px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-secondary); outline: none; }
+  .btn { font-size: 12px; font-weight: 500; padding: 7px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-primary); cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .btn:hover { background: var(--color-background-secondary); }
+  .btn-danger { border-color: #E24B4A55; color: #A32D2D; }
+  .btn-danger:hover { background: #FCEBEB; }
+  .errata-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .errata-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); font-size: 13px; color: var(--color-text-primary); background: var(--color-background-secondary); transition: opacity 0.2s; }
+  .errata-item.resolved { opacity: 0.5; }
+  .errata-item.resolved .errata-text { text-decoration: line-through; color: var(--color-text-tertiary); }
+  .errata-text { flex: 1; }
+  .errata-tag { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+  .tag-bug { background: #FCEBEB; color: #A32D2D; }
+  .tag-request { background: #E6F1FB; color: #185FA5; }
+  .tag-issue { background: #FAEEDA; color: #854F0B; }
+  .errata-actions { display: flex; gap: 4px; }
+  .icon-btn { font-size: 12px; padding: 3px 7px; border: 0.5px solid var(--color-border-tertiary); border-radius: 6px; background: transparent; cursor: pointer; color: var(--color-text-secondary); transition: background 0.12s; }
+  .icon-btn:hover { background: var(--color-background-secondary); }
+  .empty-state { font-size: 13px; color: var(--color-text-tertiary); padding: 14px 0; text-align: center; }
+  .stat-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .stat-card { flex: 1; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+  .stat-card .stat-num { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+  .stat-card .stat-lbl { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .toggle-item { cursor: pointer; }
+  .toggle-item:hover { color: var(--color-text-primary) !important; }
+  h2 { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .divider { height: 0.5px; background: var(--color-border-tertiary); margin: 18px 0; }
+  .miro-note { font-size: 11px; color: var(--color-text-tertiary); margin-top: 8px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 8px 12px; line-height: 1.5; }
+</style>
+
+<div style="padding: 18px 0 0;">
+
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:2px;">
+    <h2>Relitix MVP Roadmap</h2>
+    <span style="font-size:12px;color:var(--color-text-tertiary);">Real estate contract review software</span>
+  </div>
+  <div style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:16px;">Today: 4/21 &nbsp;·&nbsp; MVP Go Live: June 1 <span class="badge badge-mvp">MVP</span></div>
+
+  <!-- Timeline bar -->
+  <div class="timeline-bar">
+    <div class="phase-dot dot-today" title="Today 4/21"></div>
+    <div class="phase-connector solid" style="flex:2"></div>
+    <div class="phase-dot dot-mvp" title="MVP Go Live June 1"></div>
+    <div class="phase-connector dashed" style="flex:1"></div>
+    <div class="phase-dot dot-alpha" title="Alpha"></div>
+    <div class="phase-connector dashed" style="flex:0.5"></div>
+    <div class="phase-dot dot-beta" title="Beta"></div>
+    <div class="phase-connector dashed" style="flex:1.5"></div>
+    <div class="phase-dot dot-ga" title="General Release"></div>
+  </div>
+
+  <!-- Phase columns -->
+  <div class="phases-grid">
+
+    <!-- Now / Pre-MVP -->
+    <div class="phase-col active">
+      <div class="phase-label">Now → June 1</div>
+      <div class="phase-title">Pre-MVP Sprint</div>
+      <div class="phase-date" style="color:var(--color-text-info);">Active development</div>
+
+      <div class="section-head">Contract & AI</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Contract AI spoke</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Extraction pipeline (marketing)</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Black hole</div>
+      <div class="item toggle-item errata" onclick="toggleItem(this)">Errata triage #1 <sub>errata</sub></div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Agent functionality</div>
+
+      <div class="section-head">Admin</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Admin console</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">IAM / RBAC</div>
+
+      <div class="section-head">Content</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Additional screens</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Upload .mp4 for stages / text content</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">4 videos? (magic trick)</div>
+    </div>
+
+    <!-- Sprint 2 -->
+    <div class="phase-col">
+      <div class="phase-label">Sprint 2</div>
+      <div class="phase-title">Dashboard & Data</div>
+      <div class="phase-date">Pre-MVP</div>
+
+      <div class="section-head">Dashboard</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Dashboard / main page</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Contracts → transaction → account views</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Views for different roles / persona</div>
+
+      <div class="section-head">Data Model</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Extend data model for Hub integration</div>
+
+      <div class="section-head">Risk & Landing</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Risk assessment by 4 variants (prompt engineering)</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Landing page visibility control</div>
+    </div>
+
+    <!-- Sprint 3 / MVP -->
+    <div class="phase-col">
+      <div class="phase-label">Sprint 3</div>
+      <div class="phase-title">MVP Go Live <span class="badge badge-mvp">June 1</span></div>
+      <div class="phase-date" style="color:var(--color-text-info);">Target deadline</div>
+
+      <div class="section-head">AI & Users</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">AI agent review</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">User settings</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Inviting & creating users</div>
+
+      <div class="section-head">Billing</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Pricing & billing</div>
+
+      <div class="section-head">Integrations</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Skyslope connections & integrations</div>
+    </div>
+
+    <!-- Post-MVP -->
+    <div class="phase-col">
+      <div class="phase-label">Post-MVP</div>
+      <div class="phase-title">Advanced Testing → GA</div>
+      <div class="phase-date">Alpha · Beta · General Release</div>
+
+      <div class="section-head">Alpha <span class="badge badge-alpha">α</span></div>
+      <div class="item toggle-item" onclick="toggleItem(this)">White label</div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Advanced testing</div>
+
+      <div class="section-head">Beta <span class="badge badge-beta">β</span></div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Beta testing & feedback</div>
+
+      <div class="section-head">General Release <span class="badge badge-ga">GA</span></div>
+      <div class="item toggle-item" onclick="toggleItem(this)">Full general availability</div>
+    </div>
+
+  </div>
+
+  <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:8px;">Click any item to mark it complete / strike through.</div>
+
+  <div class="divider"></div>
+
+  <!-- Errata Triage Section -->
+  <div class="errata-section">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <h2>Errata Triage</h2>
+      <span class="badge badge-errata">Change Requests · Bugs · Issues</span>
+    </div>
+
+    <div class="stat-row" id="stats-row">
+      <div class="stat-card"><div class="stat-num" id="stat-open">0</div><div class="stat-lbl">Open</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-resolved">0</div><div class="stat-lbl">Resolved</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-bugs">0</div><div class="stat-lbl">Bugs</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-requests">0</div><div class="stat-lbl">Requests</div></div>
+    </div>
+
+    <div class="errata-input-row">
+      <input type="text" id="errata-input" placeholder="Describe the bug, issue, or change request..." onkeydown="if(event.key==='Enter')addErrata()" />
+      <select id="errata-type">
+        <option value="bug">Bug</option>
+        <option value="request">Change Request</option>
+        <option value="issue">Issue</option>
+      </select>
+      <button class="btn" onclick="addErrata()">+ Add</button>
+    </div>
+
+    <div class="errata-list" id="errata-list">
+      <div class="empty-state" id="empty-state">No errata logged yet. Add your first item above.</div>
+    </div>
+
+    <div class="miro-note">
+      <strong>Miro export tip:</strong> To import into Miro, copy the errata items as text and paste into a Miro sticky note cluster, or use Miro's CSV import feature. Each phase column maps to a swimlane. The timeline bar can be replicated using Miro's built-in roadmap template with the milestone dates: Today (4/21), MVP (June 1), Alpha, Beta, General Release.
+    </div>
+  </div>
+</div>
+
+<script>
+  let errataItems = [];
+  let nextId = 1;
+
+  function toggleItem(el) {
+    el.classList.toggle('done');
+  }
+
+  function addErrata() {
+    const input = document.getElementById('errata-input');
+    const type = document.getElementById('errata-type').value;
+    const text = input.value.trim();
+    if (!text) return;
+
+    const item = { id: nextId++, text, type, resolved: false };
+    errataItems.push(item);
+    input.value = '';
+    renderErrata();
+  }
+
+  function resolveErrata(id) {
+    const item = errataItems.find(e => e.id === id);
+    if (item) item.resolved = !item.resolved;
+    renderErrata();
+  }
+
+  function deleteErrata(id) {
+    errataItems = errataItems.filter(e => e.id !== id);
+    renderErrata();
+  }
+
+  function tagClass(type) {
+    if (type === 'bug') return 'tag-bug';
+    if (type === 'request') return 'tag-request';
+    return 'tag-issue';
+  }
+
+  function tagLabel(type) {
+    if (type === 'bug') return 'Bug';
+    if (type === 'request') return 'Change Req';
+    return 'Issue';
+  }
+
+  function renderErrata() {
+    const list = document.getElementById('errata-list');
+    const empty = document.getElementById('empty-state');
+
+    const open = errataItems.filter(e => !e.resolved).length;
+    const resolved = errataItems.filter(e => e.resolved).length;
+    const bugs = errataItems.filter(e => e.type === 'bug').length;
+    const requests = errataItems.filter(e => e.type === 'request').length;
+
+    document.getElementById('stat-open').textContent = open;
+    document.getElementById('stat-resolved').textContent = resolved;
+    document.getElementById('stat-bugs').textContent = bugs;
+    document.getElementById('stat-requests').textContent = requests;
+
+    if (errataItems.length === 0) {
+      list.innerHTML = '<div class="empty-state" id="empty-state">No errata logged yet. Add your first item above.</div>';
+      return;
+    }
+
+    list.innerHTML = errataItems.map(item => `
+      <div class="errata-item ${item.resolved ? 'resolved' : ''}">
+        <span class="errata-tag ${tagClass(item.type)}">${tagLabel(item.type)}</span>
+        <span class="errata-text">${item.text}</span>
+        <div class="errata-actions">
+          <button class="icon-btn" onclick="resolveErrata(${item.id})" title="${item.resolved ? 'Reopen' : 'Mark resolved'}">${item.resolved ? '↩' : '✓'}</button>
+          <button class="icon-btn btn-danger" onclick="deleteErrata(${item.id})" title="Delete">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderErrata();
+</script>
